@@ -52,7 +52,8 @@ analysis_status = {
     'error': None,
     'config': {
         'intervalo': Client.KLINE_INTERVAL_1DAY,
-        'dias': 350
+        'dias': 350,
+        'categoria': 'todos'
     }
 }
 
@@ -70,6 +71,136 @@ def obtener_simbolos_spot(quote_asset='USDT'):
     except Exception as e:
         print(f"Error al obtener símbolos: {e}")
         return []
+
+def obtener_info_simbolos_detallada(quote_asset='USDT'):
+    """Obtiene información detallada de todos los símbolos incluyendo volumen y otros datos."""
+    client = Client(api_key, api_secret)
+    simbolos_info = []
+    
+    try:
+        # Obtener información del exchange
+        exchange_info = client.get_exchange_info()
+        
+        # Obtener estadísticas de 24h para todos los símbolos
+        ticker_24h = client.get_ticker()
+        ticker_dict = {t['symbol']: t for t in ticker_24h}
+        
+        for s in exchange_info['symbols']:
+            if (s['isSpotTradingAllowed'] and s['status'] == 'TRADING' and 
+                s['quoteAsset'] == quote_asset and 'UP' not in s['symbol'] and 
+                'DOWN' not in s['symbol'] and s['baseAsset'] not in ['USDC', 'TUSD', 'BUSD']):
+                
+                symbol_info = {
+                    'symbol': s['symbol'],
+                    'baseAsset': s['baseAsset'],
+                    'quoteAsset': s['quoteAsset'],
+                    'onboardDate': s.get('onboardDate', None),  # Fecha de listado
+                    'permissions': s.get('permissions', []),
+                    'volume_24h': 0,
+                    'quoteVolume_24h': 0,
+                    'count_24h': 0,
+                    'priceChange_24h': 0,
+                    'priceChangePercent_24h': 0
+                }
+                
+                # Añadir datos de volumen si están disponibles
+                if s['symbol'] in ticker_dict:
+                    ticker = ticker_dict[s['symbol']]
+                    symbol_info.update({
+                        'volume_24h': float(ticker.get('volume', 0)),
+                        'quoteVolume_24h': float(ticker.get('quoteVolume', 0)),
+                        'count_24h': int(ticker.get('count', 0)),
+                        'priceChange_24h': float(ticker.get('priceChange', 0)),
+                        'priceChangePercent_24h': float(ticker.get('priceChangePercent', 0))
+                    })
+                
+                simbolos_info.append(symbol_info)
+        
+        return simbolos_info
+        
+    except Exception as e:
+        print(f"Error al obtener información detallada de símbolos: {e}")
+        return []
+
+def filtrar_simbolos_por_categoria(simbolos_info, categoria='todos'):
+    """
+    Filtra símbolos por diferentes categorías.
+    
+    Categorías disponibles:
+    - 'todos': Todos los símbolos
+    - 'populares': Top 50 por volumen de trading
+    - 'nuevos': Listados en los últimos 30 días
+    - 'top10': Top 10 por volumen
+    - 'top100': Top 100 por volumen
+    - 'bajos_volumen': Símbolos con bajo volumen (para encontrar gemas ocultas)
+    - 'alto_volatilidad': Símbolos con alta volatilidad (cambio de precio > 10%)
+    """
+    
+    if not simbolos_info:
+        return []
+    
+    if categoria == 'todos':
+        return [s['symbol'] for s in simbolos_info]
+    
+    # Ordenar por volumen de trading (descendente)
+    simbolos_ordenados = sorted(simbolos_info, key=lambda x: x['quoteVolume_24h'], reverse=True)
+    
+    if categoria == 'populares':
+        # Top 50 por volumen
+        return [s['symbol'] for s in simbolos_ordenados[:50]]
+    
+    elif categoria == 'top10':
+        # Top 10 por volumen
+        return [s['symbol'] for s in simbolos_ordenados[:10]]
+    
+    elif categoria == 'top100':
+        # Top 100 por volumen
+        return [s['symbol'] for s in simbolos_ordenados[:100]]
+    
+    elif categoria == 'nuevos':
+        # Listados en los últimos 30 días
+        from datetime import datetime, timedelta
+        fecha_limite = datetime.now() - timedelta(days=30)
+        nuevos = []
+        
+        for s in simbolos_info:
+            if s['onboardDate']:
+                try:
+                    fecha_listado = datetime.fromtimestamp(s['onboardDate'] / 1000)
+                    if fecha_listado >= fecha_limite:
+                        nuevos.append(s['symbol'])
+                except:
+                    continue
+        
+        return nuevos
+    
+    elif categoria == 'bajos_volumen':
+        # Símbolos con bajo volumen (últimos 100 por volumen)
+        return [s['symbol'] for s in simbolos_ordenados[-100:]]
+    
+    elif categoria == 'alto_volatilidad':
+        # Símbolos con alta volatilidad (>10% cambio en 24h)
+        volatiles = []
+        for s in simbolos_info:
+            if abs(s['priceChangePercent_24h']) > 10:
+                volatiles.append(s['symbol'])
+        return volatiles
+    
+    else:
+        # Categoría no reconocida, devolver todos
+        return [s['symbol'] for s in simbolos_info]
+
+def obtener_categorias_disponibles():
+    """Retorna las categorías disponibles para filtrar símbolos."""
+    return {
+        'todos': 'Todos los Símbolos',
+        'populares': 'Top 50 Populares',
+        'top10': 'Top 10 por Volumen',
+        'top100': 'Top 100 por Volumen',
+        'nuevos': 'Nuevos Listados (30 días)',
+        'bajos_volumen': 'Bajo Volumen (Gemas Ocultas)',
+        'alto_volatilidad': 'Alta Volatilidad (>10%)'
+    }
 
 def obtener_datos_historicos_binance(simbolo, intervalo, dias):
     """Obtiene los datos históricos desde la API de Binance."""
@@ -229,6 +360,7 @@ def run_technical_analysis():
         # Obtener configuración actual
         intervalo = analysis_status['config']['intervalo']
         dias = analysis_status['config']['dias']
+        categoria = analysis_status['config'].get('categoria', 'todos')
         
         # Validar configuración
         es_valido, mensaje_error = validar_configuracion(intervalo, dias)
@@ -237,9 +369,18 @@ def run_technical_analysis():
             analysis_status['is_running'] = False
             return
         
-        symbols_a_analizar = obtener_simbolos_spot(quote_asset='USDT')
+        # Obtener información detallada de símbolos
+        print(f"Obteniendo información detallada de símbolos...")
+        simbolos_info = obtener_info_simbolos_detallada(quote_asset='USDT')
+        if not simbolos_info:
+            analysis_status['error'] = "No se pudo obtener la información de símbolos."
+            analysis_status['is_running'] = False
+            return
+        
+        # Filtrar símbolos por categoría
+        symbols_a_analizar = filtrar_simbolos_por_categoria(simbolos_info, categoria)
         if not symbols_a_analizar:
-            analysis_status['error'] = "No se pudo obtener la lista de símbolos."
+            analysis_status['error'] = f"No se encontraron símbolos para la categoría '{categoria}'."
             analysis_status['is_running'] = False
             return
         
@@ -270,7 +411,7 @@ def run_technical_analysis():
             df_resultados = pd.DataFrame(resultados_ordenados)
             df_resultados = df_resultados[['simbolo', 'score', 'precio_cierre', 'rsi', 'vol_ratio']]
             
-            nombre_archivo = f"analisis_binance_{intervalo}_{dias}dias_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
+            nombre_archivo = f"analisis_binance_{categoria}_{intervalo}_{dias}dias_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.csv"
             df_resultados.to_csv(nombre_archivo, index=False, float_format='%.2f')
             
             analysis_status['results'] = df_resultados.to_dict('records')
@@ -285,7 +426,9 @@ def run_technical_analysis():
 # --- RUTAS DE FLASK ---
 @app.route('/')
 def index():
-    return render_template('index.html', intervalos=INTERVALOS_DISPONIBLES)
+    return render_template('index.html', 
+                         intervalos=INTERVALOS_DISPONIBLES,
+                         categorias=obtener_categorias_disponibles())
 
 @app.route('/api/start-analysis', methods=['POST'])
 def start_analysis():
@@ -299,6 +442,7 @@ def start_analysis():
     data = request.get_json()
     intervalo_input = data.get('intervalo', '1d')
     dias = data.get('dias', 350)
+    categoria = data.get('categoria', 'todos')
     
     # Validar intervalo
     if intervalo_input not in INTERVALOS_DISPONIBLES:
@@ -310,6 +454,11 @@ def start_analysis():
     if not isinstance(dias, int) or dias < 30 or dias > 1000:
         return jsonify({'error': 'La cantidad de días debe estar entre 30 y 1000'}), 400
     
+    # Validar categoría
+    categorias_disponibles = obtener_categorias_disponibles()
+    if categoria not in categorias_disponibles:
+        return jsonify({'error': 'Categoría no válida'}), 400
+    
     # Validar configuración
     es_valido, mensaje_error = validar_configuracion(intervalo, dias)
     if not es_valido:
@@ -318,6 +467,7 @@ def start_analysis():
     # Actualizar configuración
     analysis_status['config']['intervalo'] = intervalo
     analysis_status['config']['dias'] = dias
+    analysis_status['config']['categoria'] = categoria
     
     # Reset status
     analysis_status['is_running'] = False
@@ -336,7 +486,8 @@ def start_analysis():
         'message': 'Análisis iniciado',
         'config': {
             'intervalo': intervalo_input,
-            'dias': dias
+            'dias': dias,
+            'categoria': categoria
         }
     })
 
@@ -426,6 +577,25 @@ def get_latest_results():
     try:
         df = pd.read_csv(csv_file)
         return jsonify({'results': df.to_dict('records')})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/get-categories')
+def get_categories():
+    """Obtiene las categorías disponibles para filtrar símbolos."""
+    return jsonify({
+        'categories': obtener_categorias_disponibles()
+    })
+
+@app.route('/api/get-symbols-info')
+def get_symbols_info():
+    """Obtiene información detallada de todos los símbolos."""
+    try:
+        simbolos_info = obtener_info_simbolos_detallada(quote_asset='USDT')
+        return jsonify({
+            'symbols': simbolos_info,
+            'total': len(simbolos_info)
+        })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 

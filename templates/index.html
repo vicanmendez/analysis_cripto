@@ -82,7 +82,7 @@
         }
 
         .table {
-            color: #ffffff;
+            color: #585656;
             background: transparent;
         }
 
@@ -146,6 +146,7 @@
             border-radius: 12px;
             padding: 16px;
             margin-bottom: 16px;
+            color: #ffffff;
         }
 
         .risk-badge {
@@ -247,7 +248,7 @@
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label class="config-label">
                                     <i class="fas fa-clock me-2"></i>
                                     Intervalo de Tiempo
@@ -261,13 +262,27 @@
                                 </select>
                                 <small class="text-muted">Selecciona el intervalo de las velas para el análisis</small>
                             </div>
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-4 mb-3">
                                 <label class="config-label">
                                     <i class="fas fa-calendar me-2"></i>
                                     Días de Análisis
                                 </label>
                                 <input type="number" class="form-control" id="diasInput" value="350" min="30" max="1000">
                                 <small class="text-muted">Cantidad de días hacia atrás para analizar (30-1000)</small>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="config-label">
+                                    <i class="fas fa-filter me-2"></i>
+                                    Categoría de Tokens
+                                </label>
+                                <select class="form-select" id="categoriaSelect">
+                                    {% for key, value in categorias.items() %}
+                                    <option value="{{ key }}" {% if key == 'todos' %}selected{% endif %}>
+                                        {{ value }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Filtra tokens por popularidad, novedad o características</small>
                             </div>
                         </div>
                         <div class="row">
@@ -276,9 +291,9 @@
                                     <i class="fas fa-info-circle me-2"></i>
                                     <strong>Recomendaciones:</strong>
                                     <ul class="mb-0 mt-2">
-                                        <li><strong>1s, 1m:</strong> Máximo 7 días para evitar sobrecarga</li>
-                                        <li><strong>3m, 5m:</strong> Máximo 30 días recomendado</li>
-                                        <li><strong>1h, 4h, 1d:</strong> Hasta 1000 días disponibles</li>
+                                        <li><strong>Intervalos:</strong> 1s/1m (máx 7 días), 3m/5m (máx 30 días), otros (hasta 1000 días)</li>
+                                        <li><strong>Categorías:</strong> "Populares" para análisis rápido, "Nuevos" para oportunidades emergentes</li>
+                                        <li><strong>Gemas Ocultas:</strong> Usa "Bajo Volumen" para encontrar tokens con potencial de crecimiento</li>
                                     </ul>
                                 </div>
                             </div>
@@ -439,7 +454,8 @@
         function getCurrentConfig() {
             return {
                 intervalo: document.getElementById('intervaloSelect').value,
-                dias: parseInt(document.getElementById('diasInput').value)
+                dias: parseInt(document.getElementById('diasInput').value),
+                categoria: document.getElementById('categoriaSelect').value
             };
         }
 
@@ -497,7 +513,16 @@
                 }
                 
                 const data = await response.json();
-                showAlert(`Análisis técnico iniciado con configuración: ${config.intervalo} - ${config.dias} días`, 'success');
+                const categorias = {
+                    'todos': 'Todos los Símbolos',
+                    'populares': 'Top 50 Populares',
+                    'top10': 'Top 10 por Volumen',
+                    'top100': 'Top 100 por Volumen',
+                    'nuevos': 'Nuevos Listados',
+                    'bajos_volumen': 'Bajo Volumen',
+                    'alto_volatilidad': 'Alta Volatilidad'
+                };
+                showAlert(`Análisis iniciado: ${categorias[config.categoria]} - ${config.intervalo} - ${config.dias} días`, 'success');
                 
                 // Iniciar polling del estado
                 startProgressPolling();
@@ -849,6 +874,24 @@
                         diasInput.value = 30;
                         showAlert('Ajustado a 30 días para este intervalo', 'info');
                     }
+                }
+            });
+
+            // Cambio de categoría
+            document.getElementById('categoriaSelect').addEventListener('change', function() {
+                const categoria = this.value;
+                const mensajes = {
+                    'populares': 'Analizando los 50 tokens más populares por volumen de trading',
+                    'top10': 'Analizando solo los 10 tokens con mayor volumen',
+                    'top100': 'Analizando los 100 tokens más líquidos',
+                    'nuevos': 'Analizando tokens listados en los últimos 30 días',
+                    'bajos_volumen': 'Buscando gemas ocultas con bajo volumen de trading',
+                    'alto_volatilidad': 'Analizando tokens con alta volatilidad (>10% cambio 24h)',
+                    'todos': 'Analizando todos los tokens disponibles'
+                };
+                
+                if (mensajes[categoria]) {
+                    showAlert(mensajes[categoria], 'info');
                 }
             });
         });
