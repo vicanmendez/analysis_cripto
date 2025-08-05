@@ -1,0 +1,8 @@
+# requirements.txt
+pandas
+pandas-ta
+numpy
+python-binance
+setuptools
+google-generativeai
+flask

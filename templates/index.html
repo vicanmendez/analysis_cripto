@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptoScanner Pro - Análisis de Criptomonedas</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #6366f1;
+            --secondary-color: #8b5cf6;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --dark-bg: #0f172a;
+            --card-bg: #1e293b;
+            --text-light: #f1f5f9;
+            --text-muted: #94a3b8;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--dark-bg) 0%, #1e1b4b 100%);
+            color: #ffffff;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+        }
+
+        .navbar {
+            background: rgba(30, 41, 59, 0.95) !important;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(99, 102, 241, 0.4);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success-color), #059669);
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 600;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning-color), #d97706);
+            border: none;
+            border-radius: 12px;
+            padding: 12px 24px;
+            font-weight: 600;
+        }
+
+        .progress {
+            height: 8px;
+            border-radius: 10px;
+            background: rgba(148, 163, 184, 0.2);
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 10px;
+        }
+
+        .table {
+            color: #ffffff;
+            background: transparent;
+        }
+
+        .table th {
+            border-color: rgba(148, 163, 184, 0.2);
+            color: #e2e8f0;
+            font-weight: 600;
+        }
+
+        .table td {
+            border-color: rgba(148, 163, 184, 0.1);
+            color: #ffffff;
+        }
+
+        .form-control, .form-select {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            color: #ffffff;
+            border-radius: 12px;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background: rgba(30, 41, 59, 0.9);
+            border-color: var(--primary-color);
+            color: #ffffff;
+            box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.25);
+        }
+
+        .alert {
+            border-radius: 12px;
+            border: none;
+        }
+
+        .loading-spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .feature-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .result-card {
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .risk-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .risk-low { background: rgba(16, 185, 129, 0.2); color: #10b981; }
+        .risk-medium { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
+        .risk-high { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
+        .risk-very-high { background: rgba(220, 38, 127, 0.2); color: #dc2626; }
+        
+        /* Mejoras adicionales para legibilidad */
+        .card-title {
+            color: #ffffff !important;
+        }
+        
+        .btn-outline-primary {
+            color: #6366f1;
+            border-color: #6366f1;
+        }
+        
+        .btn-outline-primary:hover {
+            color: #ffffff;
+            background-color: #6366f1;
+        }
+        
+        .btn-outline-warning {
+            color: #f59e0b;
+            border-color: #f59e0b;
+        }
+        
+        .btn-outline-warning:hover {
+            color: #ffffff;
+            background-color: #f59e0b;
+        }
+
+        .config-section {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .config-label {
+            color: #e2e8f0;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="#">
+                <i class="fas fa-chart-line me-2"></i>
+                CryptoScanner Pro
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text">
+                    <i class="fas fa-circle text-success me-2"></i>
+                    Sistema Activo
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body text-center">
+                        <h1 class="display-6 fw-bold mb-3">
+                            <i class="fas fa-rocket me-3"></i>
+                            Análisis Inteligente de Criptomonedas
+                        </h1>
+                        <p class="lead" style="color: #cbd5e1;">
+                            Escáner técnico + IA para encontrar las mejores oportunidades de inversión
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuración de Análisis -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cog me-2"></i>
+                            Configuración de Análisis
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="config-label">
+                                    <i class="fas fa-clock me-2"></i>
+                                    Intervalo de Tiempo
+                                </label>
+                                <select class="form-select" id="intervaloSelect">
+                                    {% for key, value in intervalos.items() %}
+                                    <option value="{{ key }}" {% if key == '1d' %}selected{% endif %}>
+                                        {{ key }} - {{ value }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                                <small class="text-muted">Selecciona el intervalo de las velas para el análisis</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="config-label">
+                                    <i class="fas fa-calendar me-2"></i>
+                                    Días de Análisis
+                                </label>
+                                <input type="number" class="form-control" id="diasInput" value="350" min="30" max="1000">
+                                <small class="text-muted">Cantidad de días hacia atrás para analizar (30-1000)</small>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Recomendaciones:</strong>
+                                    <ul class="mb-0 mt-2">
+                                        <li><strong>1s, 1m:</strong> Máximo 7 días para evitar sobrecarga</li>
+                                        <li><strong>3m, 5m:</strong> Máximo 30 días recomendado</li>
+                                        <li><strong>1h, 4h, 1d:</strong> Hasta 1000 días disponibles</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Funciones Principales -->
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="card feature-card h-100">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-search fa-3x text-primary"></i>
+                        </div>
+                        <h5 class="card-title">Escáner Técnico</h5>
+                        <p class="card-text" style="color: #cbd5e1;">
+                            Analiza cientos de criptomonedas en busca de señales de compra (Cruce Dorado + RSI + Volumen)
+                        </p>
+                        <button class="btn btn-primary w-100" id="scanBtn" onclick="startTechnicalAnalysis()">
+                            <span id="scanBtnText">Iniciar Análisis</span>
+                            <div class="loading-spinner d-none" id="scanSpinner"></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <div class="card feature-card h-100">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-plus-circle fa-3x text-success"></i>
+                        </div>
+                        <h5 class="card-title">Añadir Símbolo</h5>
+                        <p class="card-text" style="color: #cbd5e1;">
+                            Analiza manualmente cualquier criptomoneda que no esté en la lista
+                        </p>
+                        <div class="input-group mb-3">
+                            <input type="text" class="form-control" id="symbolInput" placeholder="Ej: BTC, ETH, ADA...">
+                            <button class="btn btn-success" onclick="addSymbol()">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4 mb-3">
+                <div class="card feature-card h-100">
+                    <div class="card-body text-center">
+                        <div class="mb-3">
+                            <i class="fas fa-brain fa-3x text-warning"></i>
+                        </div>
+                        <h5 class="card-title">Análisis con IA</h5>
+                        <p class="card-text" style="color: #cbd5e1;">
+                            Consulta a Gemini para análisis fundamental de los candidatos seleccionados
+                        </p>
+                        <button class="btn btn-warning w-100" id="aiBtn" onclick="analyzeWithAI()">
+                            <span id="aiBtnText">Analizar con IA</span>
+                            <div class="loading-spinner d-none" id="aiSpinner"></div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="row mb-4" id="progressSection" style="display: none;">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h6 class="card-title mb-3">
+                            <i class="fas fa-cogs me-2"></i>
+                            Progreso del Análisis
+                        </h6>
+                        <div class="progress mb-3">
+                            <div class="progress-bar" id="progressBar" role="progressbar" style="width: 0%"></div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small style="color: #cbd5e1;" id="progressText">Iniciando análisis...</small>
+                            <small style="color: #cbd5e1;" id="progressPercent">0%</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultados Técnicos -->
+        <div class="row mb-4" id="technicalResults" style="display: none;">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            Resultados del Análisis Técnico
+                        </h5>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary me-2" onclick="downloadCSV()">
+                                <i class="fas fa-download me-1"></i>
+                                Descargar CSV
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="analyzeSelectedWithAI()">
+                                <i class="fas fa-brain me-1"></i>
+                                Analizar Seleccionados
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="technicalTable">
+                                <thead>
+                                    <tr>
+                                        <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                                        <th>Símbolo</th>
+                                        <th>Puntaje</th>
+                                        <th>Precio</th>
+                                        <th>RSI</th>
+                                        <th>Ratio Volumen</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="technicalTableBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultados IA -->
+        <div class="row mb-4" id="aiResults" style="display: none;">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-brain me-2"></i>
+                            Análisis Fundamental con IA
+                        </h5>
+                    </div>
+                    <div class="card-body" id="aiResultsBody">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alertas -->
+        <div id="alertsContainer"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let analysisInterval;
+        let selectedSymbols = [];
+
+        // Función para obtener la configuración actual
+        function getCurrentConfig() {
+            return {
+                intervalo: document.getElementById('intervaloSelect').value,
+                dias: parseInt(document.getElementById('diasInput').value)
+            };
+        }
+
+        // Función para mostrar alertas
+        function showAlert(message, type = 'info') {
+            const alertsContainer = document.getElementById('alertsContainer');
+            const alertId = 'alert-' + Date.now();
+            
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show" id="${alertId}">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : type === 'danger' ? 'times-circle' : 'info-circle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            alertsContainer.insertAdjacentHTML('beforeend', alertHtml);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                const alert = document.getElementById(alertId);
+                if (alert) {
+                    alert.remove();
+                }
+            }, 5000);
+        }
+
+        // Función para iniciar análisis técnico
+        async function startTechnicalAnalysis() {
+            const scanBtn = document.getElementById('scanBtn');
+            const scanBtnText = document.getElementById('scanBtnText');
+            const scanSpinner = document.getElementById('scanSpinner');
+            const progressSection = document.getElementById('progressSection');
+            
+            // Obtener configuración actual
+            const config = getCurrentConfig();
+            
+            try {
+                scanBtn.disabled = true;
+                scanBtnText.textContent = 'Iniciando...';
+                scanSpinner.classList.remove('d-none');
+                progressSection.style.display = 'block';
+                
+                const response = await fetch('/api/start-analysis', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+                
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Error al iniciar el análisis');
+                }
+                
+                const data = await response.json();
+                showAlert(`Análisis técnico iniciado con configuración: ${config.intervalo} - ${config.dias} días`, 'success');
+                
+                // Iniciar polling del estado
+                startProgressPolling();
+                
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'danger');
+                scanBtn.disabled = false;
+                scanBtnText.textContent = 'Iniciar Análisis';
+                scanSpinner.classList.add('d-none');
+            }
+        }
+
+        // Función para hacer polling del progreso
+        function startProgressPolling() {
+            analysisInterval = setInterval(async () => {
+                try {
+                    const response = await fetch('/api/analysis-status');
+                    const status = await response.json();
+                    
+                    updateProgress(status);
+                    
+                    if (!status.is_running) {
+                        clearInterval(analysisInterval);
+                        if (status.error) {
+                            showAlert('Error en el análisis: ' + status.error, 'danger');
+                        } else if (status.results && status.results.length > 0) {
+                            showTechnicalResults(status.results);
+                            showAlert(`Análisis completado. Se encontraron ${status.results.length} candidatos.`, 'success');
+                        } else {
+                            showAlert('Análisis completado. No se encontraron candidatos que cumplan los criterios.', 'warning');
+                        }
+                        
+                        // Reset button
+                        const scanBtn = document.getElementById('scanBtn');
+                        const scanBtnText = document.getElementById('scanBtnText');
+                        const scanSpinner = document.getElementById('scanSpinner');
+                        scanBtn.disabled = false;
+                        scanBtnText.textContent = 'Iniciar Análisis';
+                        scanSpinner.classList.add('d-none');
+                    }
+                } catch (error) {
+                    console.error('Error polling status:', error);
+                }
+            }, 1000);
+        }
+
+        // Función para actualizar el progreso
+        function updateProgress(status) {
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const progressPercent = document.getElementById('progressPercent');
+            
+            progressBar.style.width = status.progress + '%';
+            progressPercent.textContent = status.progress + '%';
+            
+            if (status.current_symbol) {
+                progressText.textContent = `Analizando: ${status.current_symbol} (${status.progress}%)`;
+            } else {
+                progressText.textContent = `Progreso: ${status.progress}%`;
+            }
+        }
+
+        // Función para mostrar resultados técnicos
+        function showTechnicalResults(results) {
+            const technicalResults = document.getElementById('technicalResults');
+            const technicalTableBody = document.getElementById('technicalTableBody');
+            
+            technicalTableBody.innerHTML = '';
+            
+            results.forEach((result, index) => {
+                const row = `
+                    <tr>
+                        <td><input type="checkbox" value="${result.simbolo}" onchange="toggleSymbolSelection('${result.simbolo}')"></td>
+                        <td><strong>${result.simbolo}</strong></td>
+                        <td><span class="badge bg-primary">${result.score.toFixed(2)}</span></td>
+                        <td>$${parseFloat(result.precio_cierre).toFixed(4)}</td>
+                        <td>${result.rsi.toFixed(1)}</td>
+                        <td>${result.vol_ratio.toFixed(2)}x</td>
+                    </tr>
+                `;
+                technicalTableBody.insertAdjacentHTML('beforeend', row);
+            });
+            
+            technicalResults.style.display = 'block';
+        }
+
+        // Función para añadir símbolo manualmente
+        async function addSymbol() {
+            const symbolInput = document.getElementById('symbolInput');
+            const symbol = symbolInput.value.trim().toUpperCase();
+            const config = getCurrentConfig();
+            
+            if (!symbol) {
+                showAlert('Por favor ingresa un símbolo', 'warning');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/add-symbol', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ 
+                        symbol: symbol,
+                        intervalo: config.intervalo,
+                        dias: config.dias
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(`${symbol} cumple con los criterios técnicos!`, 'success');
+                    // Añadir a la tabla si está visible
+                    if (document.getElementById('technicalResults').style.display !== 'none') {
+                        const technicalTableBody = document.getElementById('technicalTableBody');
+                        const row = `
+                            <tr>
+                                <td><input type="checkbox" value="${result.result.simbolo}" onchange="toggleSymbolSelection('${result.result.simbolo}')"></td>
+                                <td><strong>${result.result.simbolo}</strong></td>
+                                <td><span class="badge bg-primary">${result.result.score.toFixed(2)}</span></td>
+                                <td>$${parseFloat(result.result.precio_cierre).toFixed(4)}</td>
+                                <td>${result.result.rsi.toFixed(1)}</td>
+                                <td>${result.result.vol_ratio.toFixed(2)}x</td>
+                            </tr>
+                        `;
+                        technicalTableBody.insertAdjacentHTML('beforeend', row);
+                    }
+                } else {
+                    showAlert(result.message, 'warning');
+                }
+                
+                symbolInput.value = '';
+                
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'danger');
+            }
+        }
+
+        // Función para manejar selección de símbolos
+        function toggleSymbolSelection(symbol) {
+            const index = selectedSymbols.indexOf(symbol);
+            if (index > -1) {
+                selectedSymbols.splice(index, 1);
+            } else {
+                selectedSymbols.push(symbol);
+            }
+        }
+
+        // Función para seleccionar/deseleccionar todos
+        function toggleSelectAll() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('#technicalTableBody input[type="checkbox"]');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+                if (selectAll.checked) {
+                    if (!selectedSymbols.includes(checkbox.value)) {
+                        selectedSymbols.push(checkbox.value);
+                    }
+                } else {
+                    const index = selectedSymbols.indexOf(checkbox.value);
+                    if (index > -1) {
+                        selectedSymbols.splice(index, 1);
+                    }
+                }
+            });
+        }
+
+        // Función para analizar con IA
+        async function analyzeWithAI() {
+            // Primero obtener los resultados más recientes
+            try {
+                const response = await fetch('/api/get-latest-results');
+                const data = await response.json();
+                
+                if (data.error) {
+                    showAlert('No hay resultados técnicos disponibles. Ejecuta el escáner primero.', 'warning');
+                    return;
+                }
+                
+                // Tomar los top 10
+                const symbolsToAnalyze = data.results.slice(0, 10).map(r => r.simbolo);
+                await performAIAnalysis(symbolsToAnalyze);
+                
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'danger');
+            }
+        }
+
+        // Función para analizar símbolos seleccionados con IA
+        async function analyzeSelectedWithAI() {
+            if (selectedSymbols.length === 0) {
+                showAlert('Por favor selecciona al menos un símbolo para analizar', 'warning');
+                return;
+            }
+            
+            await performAIAnalysis(selectedSymbols);
+        }
+
+        // Función para realizar análisis con IA
+        async function performAIAnalysis(symbols) {
+            const aiBtn = document.getElementById('aiBtn');
+            const aiBtnText = document.getElementById('aiBtnText');
+            const aiSpinner = document.getElementById('aiSpinner');
+            
+            try {
+                aiBtn.disabled = true;
+                aiBtnText.textContent = 'Analizando...';
+                aiSpinner.classList.remove('d-none');
+                
+                const response = await fetch('/api/analyze-with-ai', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ symbols: symbols })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                showAIResults(data.results);
+                showAlert(`Análisis con IA completado para ${data.results.length} símbolos`, 'success');
+                
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'danger');
+            } finally {
+                aiBtn.disabled = false;
+                aiBtnText.textContent = 'Analizar con IA';
+                aiSpinner.classList.add('d-none');
+            }
+        }
+
+        // Función para mostrar resultados de IA
+        function showAIResults(results) {
+            const aiResults = document.getElementById('aiResults');
+            const aiResultsBody = document.getElementById('aiResultsBody');
+            
+            aiResultsBody.innerHTML = '';
+            
+            results.forEach(result => {
+                const riskClass = result.risk_level === 'Bajo' ? 'risk-low' : 
+                                result.risk_level === 'Medio' ? 'risk-medium' :
+                                result.risk_level === 'Alto' ? 'risk-high' : 'risk-very-high';
+                
+                const resultHtml = `
+                    <div class="result-card">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h6 class="mb-0">
+                                <i class="fas fa-coins me-2"></i>
+                                ${result.symbol}
+                            </h6>
+                            <span class="risk-badge ${riskClass}">${result.risk_level}</span>
+                        </div>
+                        <p style="color: #cbd5e1;" class="mb-3">${result.summary}</p>
+                        <div class="row">
+                            <div class="col-md-4">
+                                <h6 class="text-primary">📜 Largo Plazo</h6>
+                                <p class="small">${result.long_term_outlook}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="text-warning">📈 Swing Trading</h6>
+                                <p class="small">${result.medium_term_outlook}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <h6 class="text-success">⚡ Day Trading</h6>
+                                <p class="small">${result.short_term_outlook}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                aiResultsBody.insertAdjacentHTML('beforeend', resultHtml);
+            });
+            
+            aiResults.style.display = 'block';
+        }
+
+        // Función para descargar CSV
+        async function downloadCSV() {
+            try {
+                const response = await fetch('/api/download-csv');
+                if (!response.ok) {
+                    throw new Error('No se pudo descargar el archivo');
+                }
+                
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'analisis_binance.csv';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                
+                showAlert('Archivo CSV descargado correctamente', 'success');
+                
+            } catch (error) {
+                showAlert('Error al descargar: ' + error.message, 'danger');
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Enter key para añadir símbolo
+            document.getElementById('symbolInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    addSymbol();
+                }
+            });
+
+            // Validación de días en tiempo real
+            document.getElementById('diasInput').addEventListener('input', function() {
+                const dias = parseInt(this.value);
+                const intervalo = document.getElementById('intervaloSelect').value;
+                
+                if (intervalo === '1s' || intervalo === '1m') {
+                    if (dias > 7) {
+                        this.value = 7;
+                        showAlert('Para intervalos de 1 segundo o 1 minuto, máximo 7 días', 'warning');
+                    }
+                } else if (intervalo === '3m' || intervalo === '5m') {
+                    if (dias > 30) {
+                        this.value = 30;
+                        showAlert('Para intervalos pequeños, máximo 30 días', 'warning');
+                    }
+                }
+            });
+
+            // Cambio de intervalo
+            document.getElementById('intervaloSelect').addEventListener('change', function() {
+                const intervalo = this.value;
+                const diasInput = document.getElementById('diasInput');
+                const dias = parseInt(diasInput.value);
+                
+                if (intervalo === '1s' || intervalo === '1m') {
+                    if (dias > 7) {
+                        diasInput.value = 7;
+                        showAlert('Ajustado a 7 días para este intervalo', 'info');
+                    }
+                } else if (intervalo === '3m' || intervalo === '5m') {
+                    if (dias > 30) {
+                        diasInput.value = 30;
+                        showAlert('Ajustado a 30 días para este intervalo', 'info');
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html> 
